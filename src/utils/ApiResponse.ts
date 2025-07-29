@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const response = (success: boolean, message: string, data: any = null, statusCode?: number) => {
+const response = (success: boolean, message: string, data?: any , statusCode?: number) => {
   return NextResponse.json(
     { success, message, data },
     { status: statusCode ?? (success ? 200 : 400) }
@@ -8,3 +8,11 @@ const response = (success: boolean, message: string, data: any = null, statusCod
 };
 
 export default response;
+
+
+export interface ApiResponse{
+  success: boolean;
+  message: string;
+  isAcceptingMessages? : boolean;
+  messages? : Array<string>;
+}
