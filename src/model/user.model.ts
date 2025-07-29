@@ -1,9 +1,6 @@
 import mongoose, { Schema, model, models, Document } from "mongoose";
 import bcrypt from "bcryptjs";
 
-// ====================
-// Interfaces
-// ====================
 export interface IMessage extends Document {
   content: string;
   createdAt: Date;
@@ -18,12 +15,8 @@ export interface IUser extends Document {
   verifyCodeExpiry?: Date;
   isAcceptingMessage?: boolean;
   messages?: IMessage[];
-  verifyPassword(password: string): Promise<boolean>;
 }
 
-// ====================
-// Message Schema (Subdocument)
-// ====================
 const messageSchema = new Schema<IMessage>(
   {
     content: { type: String, required: true },
@@ -31,9 +24,6 @@ const messageSchema = new Schema<IMessage>(
   },
 );
 
-// ====================
-// User Schema
-// ====================
 const userSchema = new Schema<IUser>(
   {
     username: { type: String, required: true },
@@ -49,16 +39,13 @@ const userSchema = new Schema<IUser>(
     verifyCode: { type: String },
     verifyCodeExpiry: { type: Date },
     isAcceptingMessage: { type: Boolean, default: true },
-    messages: { type: [messageSchema], default: [] }, // Embedded messages
+    messages: { type: [messageSchema], default: [] }, 
   },
   {
     timestamps: true,
   }
 );
 
-// ====================
-// Pre-save password hashing
-// ====================
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
@@ -69,17 +56,8 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// ====================
-// Password verification method
-// ====================
-userSchema.methods.verifyPassword = async function (
-  password: string
-): Promise<boolean> {
-  return await bcrypt.compare(password, this.password);
-};
 
-// ====================
-// Model Export
-// ====================
+
+
 const User = models.User || model<IUser>("User", userSchema);
 export default User;
