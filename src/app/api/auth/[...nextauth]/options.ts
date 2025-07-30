@@ -18,48 +18,42 @@ export const authOptions: AuthOptions = {
         email: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
-
       authorize: async (credentials) => {
         const identifier = credentials?.email as string;
         const password = credentials?.password as string;
 
-        // console.log( identifier, password );
-        
         if (!identifier || !password) {
           throw new Error("Email/Username and password are required.");
         }
 
         await DBConnect();
 
-        try {
-          const user = await User.findOne({
-            $or: [{ email: identifier }, { username: identifier }],
-          }).select("+password");
+        const user = await User.findOne({
+          $or: [{ email: identifier }, { username: identifier }],
+        }).select("+password");
 
-          if (!user) {
-            throw new Error("Invalid email/username or password.");
-          }
-
-          // Optional: Require email verification
-          // if (!user.isVerified) {
-          //   throw new Error("Please verify your account before logging in.");
-          // }
-
-          const isPasswordValid = await compare(password, user.password);
-
-          if (!isPasswordValid) {
-            throw new Error("Invalid email/username or password.");
-          }
-
-          return {
-            id: user._id.toString(),
-            name: user.username,
-            email: user.email,
-          };
-        } catch (error: any) {
-          console.error("Login error:", error);
-          throw new Error("Login failed. Please try again.");
+        if (!user) {
+          throw new Error("Invalid email/username or password.");
         }
+
+        if (!user.isVerified) {
+          throw new Error("Please verify your account before logging in.");
+        }
+
+        const isPasswordValid = await compare(password, user.password);
+
+        if (!isPasswordValid) {
+          throw new Error("Invalid email/username or password.");
+        }
+
+        // Return minimal user info for token
+        return {
+          id: user._id.toString(),
+          name: user.username,
+          email: user.email,
+          isVerified: user.isVerified,
+          isAcceptingMessage: user.isAcceptingMessage,
+        };
       },
     }),
   ],
@@ -70,18 +64,26 @@ export const authOptions: AuthOptions = {
 
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 1 day in seconds
+    updateAge: 60 * 60,   // rotate token every hour
   },
 
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.user = user;
+        token.user = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          isVerified: user.isVerified,
+          isAcceptingMessage: user.isAcceptingMessage,
+        };
       }
       return token;
     },
 
     async session({ session, token }) {
-      if (token?.user) {
+      if (token.user) {
         session.user = token.user;
       }
       return session;
